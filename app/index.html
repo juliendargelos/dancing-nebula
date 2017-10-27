@@ -1,0 +1,96 @@
+<html>
+  <head>
+    <title>Three.js Boilerplate</title>
+  </head>
+  <body>
+    <div class="input">Choose a song</div>
+    <div class="default">Play default song</div>
+
+    <div id="main"></div>
+
+    <script type="x-shader/x-vertex" id="clear-vertexshader">
+      // switch on high precision floats
+      //#ifdef GL_ES
+      //precision highp float;
+      //#endif
+
+      void main() {
+        gl_Position = vec4(position, 1.0);
+      }
+    </script>
+
+    <script type="x-shader/x-fragment" id="clear-fragmentshader">
+      // switch on high precision floats
+      //#ifdef GL_ES
+      //precision highp float;
+      //#endif
+
+      void main() {
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 0.04);
+      }
+    </script>
+
+    <script type="x-shader/x-vertex" id="vertexshader">
+      // switch on high precision floats
+      //#ifdef GL_ES
+      //precision highp float;
+      //#endif
+
+      uniform float amount;
+      uniform float resolution;
+      uniform float radius;
+      uniform float piFactor;
+      uniform float time;
+      uniform float average;
+      uniform float thetaFactor;
+
+      varying vec4 color;
+
+      float rand(vec2 co){
+          return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+      }
+
+      void main() {
+        float curveOffset = position[0];
+        float pointOffset = position[1];
+        float magnitude = position[2];
+        float localRadius = pointOffset/resolution*radius;
+        float theta = (pointOffset + curveOffset)*thetaFactor*((sin(time/100.0) + 1.0)/2.0 + 1.1);
+        float pointProgress = pointOffset/resolution;
+        float curveProgress = curveOffset/amount;
+
+        float y = pointOffset == 0.0 ? 0.0 : (mod(curveOffset, 2.0) == 0.0 ? 1.0 : -1.0)*(average + magnitude*(curveOffset)/amount*4.0);
+        y = y + 0.0;
+
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(
+          localRadius*sin(theta) + sin(time/50.0*(magnitude + 1.0) + pointOffset)/(10.0/magnitude),
+          y,
+          localRadius*cos(theta) + cos(time/50.0*(magnitude + 1.0) + pointOffset)/(10.0/magnitude),
+          1.0
+        );
+
+        gl_PointSize = 2.0/distance(gl_Position.xyz,  modelViewMatrix[3].xyz);
+        if(gl_PointSize > 0.8) gl_PointSize = 0.8;
+
+        color = vec4(
+          (sin(curveOffset/100.0 + time/50.0))/2.0*0.3 + 0.7,
+          (sin(curveOffset/100.0 + time/100.0))/2.0*0.3 + 0.7,
+          (sin(curveOffset/100.0 + time/200.0))/2.0*0.3 + 0.7,
+          1.0 - (pointProgress * (1.0 - curveProgress))
+        );
+      }
+    </script>
+
+    <script type="x-shader/x-fragment" id="fragmentshader">
+      //#ifdef GL_ES
+      //precision highp float;
+      //#endif
+
+      varying vec4 color;
+
+      void main() {
+        gl_FragColor = color;
+      }
+    </script>
+  </body>
+</html>
