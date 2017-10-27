@@ -16,23 +16,25 @@ export default class App {
     this.default = document.querySelector('.default');
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
     this.scene = new THREE.Scene();
-    this.renderer = new THREE.WebGLRenderer({antialias: true});
+    this.renderer = new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true});
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.time = 0;
-    this.piFactor = 0.03;
+    this.piFactor = 0.02;
+    this.radiusMagnitudeFactor = 0;
+    this.radiusCameraFactor = 0;
     this.soundApi = new SoundApi(this.render.bind(this), this.freeze.bind(this));
     this.ui = new UI(this);
     this.simplex = new SimplexNoise();
 
     this.camera.position.set(2.5, 2.5, 2.5);
     this.controls.enableZoom = true;
-    // this.renderer.autoClearColor = false;
+    this.renderer.autoClearColor = false;
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.container.appendChild(this.renderer.domElement);
 
     this.uniforms = {
       amount:      {type: 'f', value: 200},
-      resolution:  {type: 'f', value: 900},
+      resolution:  {type: 'f', value: 5000},
       radius:      {type: 'f', value: 1},
       average:     {type: 'f', value: 0},
       time:        {type: 'f', value: 0},
@@ -50,13 +52,27 @@ export default class App {
     );
 
     this.clearer = new THREE.Mesh(
-      new THREE.PlaneGeometry(2, 2),
+      new THREE.BufferGeometry(),
       new THREE.ShaderMaterial({
+        uniforms: this.uniforms,
         vertexShader: document.getElementById('clear-vertexshader').textContent,
         fragmentShader: document.getElementById('clear-fragmentshader').textContent,
-        transparent: true
+        transparent: true,
+        side: THREE.DoubleSide
       })
     );
+
+    this.clearer.geometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array([
+      -1, -1, 0,
+       1, -1, 0,
+       1,  1, 0,
+      -1,  1, 0
+    ]), 3));
+
+    this.clearer.geometry.setIndex(new THREE.BufferAttribute(new Uint32Array([
+      0, 1, 2,
+      3, 0, 2
+    ]), 1));
 
     // this.scene.add(new THREE.GridHelper(2, 50));
 
@@ -65,7 +81,7 @@ export default class App {
 
     this.reset();
 
-    // this.scene.add(this.clearer);
+    this.scene.add(this.clearer);
     this.scene.add(this.mesh);
   }
 
@@ -79,7 +95,7 @@ export default class App {
   // }
 
   magnitude(offset) {
-    return (Math.sin(this.uniforms.time.value/1000) + 1)/2*0.1 + this.soundApi.data[Math.floor(900 * ((this.uniforms.resolution.value - offset%this.uniforms.resolution.value)/this.uniforms.resolution.value))]*(this.uniforms.radius.value/2000);
+    return this.soundApi.data[Math.floor(900 * ((this.uniforms.resolution.value - offset%this.uniforms.resolution.value)/this.uniforms.resolution.value))]*this.radiusMagnitudeFactor;
   }
 
   reset() {
@@ -91,6 +107,8 @@ export default class App {
     this.mesh.geometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3));
     this.uniforms.thetaFactor.value = 1/((this.uniforms.resolution.value + this.uniforms.amount.value)*Math.PI*this.piFactor);
     this.mesh.geometry.attributes.position.needsUpdate = true;
+    this.radiusMagnitudeFactor = this.uniforms.radius.value/2000;
+    this.radiusCameraFactor = this.uniforms.radius.value*2.5;
   }
 
   update() {
@@ -107,23 +125,24 @@ export default class App {
     }
 
     this.uniforms.average.value = average/this.uniforms.resolution.value;
-    this.uniforms.time.value += 1;//Date.now();
+    this.uniforms.time.value += 1;
     this.mesh.geometry.attributes.position.needsUpdate = true;
   }
 
   render() {
     this.soundApi.update();
     this.update();
+    const timeFactor = this.uniforms.time.value/900;
 
     this.camera.position.set(
-      this.simplex.noise2D(0, this.uniforms.time.value/1000)*this.uniforms.radius.value*2,
-      this.simplex.noise2D(1, this.uniforms.time.value/1000)*this.uniforms.radius.value*2,
-      this.simplex.noise2D(2, this.uniforms.time.value/1000)*this.uniforms.radius.value*2
+      this.simplex.noise2D(0, timeFactor)*this.radiusCameraFactor,
+      this.simplex.noise2D(1, timeFactor)*this.radiusCameraFactor,
+      this.simplex.noise2D(2, timeFactor)*this.radiusCameraFactor
     );
 
-    var z = this.camera.rotation.z;
+    const z = this.camera.rotation.z;
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
-    this.camera.rotation.z = z + 0.001;
+    this.camera.rotation.z = z + 0.005;
 
     this.renderer.render(this.scene, this.camera);
     this.frameRequest = window.requestAnimationFrame(this.render.bind(this));
