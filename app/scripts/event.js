@@ -1,3 +1,5 @@
+// Évènement basique (un type et des données à transmettre aux listeners)
+
 export default class Event {
   constructor(type, data) {
     this.type = type;

@@ -11,6 +11,7 @@ import UI from './ui'
 
 export default class App {
   constructor() {
+    // Nodes, objets Three, UI, SounApi, Simplex et paramètres de calculs
     this.container = document.getElementById('main');
     this.input = document.querySelector('.input');
     this.default = document.querySelector('.default');
@@ -26,6 +27,11 @@ export default class App {
     this.ui = new UI(this);
     this.simplex = new SimplexNoise();
 
+    this.soundApi.on('startload', event => { this.ui.loading = true });
+    this.soundApi.on('load', event => { this.ui.loading = false });
+
+    // Initialisation de la scène, de la caméra des mesh et des paramètres uniformes.
+
     this.camera.position.set(2.5, 2.5, 2.5);
     this.controls.enableZoom = true;
     this.renderer.autoClearColor = false;
@@ -33,15 +39,15 @@ export default class App {
     this.container.appendChild(this.renderer.domElement);
 
     this.uniforms = {
-      amount:      {type: 'f', value: 200},
-      resolution:  {type: 'f', value: 5000},
+      amount:      {type: 'f', value: 50},
+      resolution:  {type: 'f', value: 500},
       radius:      {type: 'f', value: 1},
       average:     {type: 'f', value: 0},
       time:        {type: 'f', value: 0},
       thetaFactor: {type: 'f', value: 0}
     };
 
-    this.mesh = new THREE.Points(
+    this.mesh = new THREE.Line(
       new THREE.BufferGeometry(),
       new THREE.ShaderMaterial({
         uniforms: this.uniforms,
@@ -51,6 +57,8 @@ export default class App {
       })
     );
 
+    // Cette mèche ne sert qu'à mimer un effet de flou cinétique, voir la shader correspondant
+    // dans le markup.
     this.clearer = new THREE.Mesh(
       new THREE.BufferGeometry(),
       new THREE.ShaderMaterial({
@@ -62,6 +70,7 @@ export default class App {
       })
     );
 
+    // Une forme rectangulaire basique qui occupe tout l'écran.
     this.clearer.geometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array([
       -1, -1, 0,
        1, -1, 0,
@@ -74,8 +83,6 @@ export default class App {
       3, 0, 2
     ]), 1));
 
-    // this.scene.add(new THREE.GridHelper(2, 50));
-
     this.resize();
     window.addEventListener('resize', this.resize.bind(this), false);
 
@@ -85,19 +92,15 @@ export default class App {
     this.scene.add(this.mesh);
   }
 
-
-  // get magnitudes() {
-  //   new Array(this.resolution).fill(0).map((magnitude, offset) => this.magnitude(offset));
-  // }
-
-  // get average() {
-  //   this.magnitudes.reduce((magnitude, average) => magnitude + average, 0)/this.resolution;
-  // }
-
+  // Aplitude du signal correspondant à l'index indiqué (calculé selon le nombre de point par courbe, avec un passe-bas à 900 échantillons seulement
+  // car ceux qui suivent ont quasiment toujours une amplitude nulle).
+  // On pondère cette amplitude avec un facteur arbitraire.
   magnitude(offset) {
     return this.soundApi.data[Math.floor(900 * ((this.uniforms.resolution.value - offset%this.uniforms.resolution.value)/this.uniforms.resolution.value))]*this.radiusMagnitudeFactor;
   }
 
+  // Récrée les tableau de vertices selon les paramètres uniformes.
+  // Réinitialise certains paramètres ne variant pas d'une frame à l'autre.
   reset() {
     const vertices = [];
     for(var i = 0; i < this.uniforms.amount.value; i++) {
@@ -111,6 +114,7 @@ export default class App {
     this.radiusCameraFactor = this.uniforms.radius.value*2.5;
   }
 
+  // Mise à jour des vertices en fonction du temps et des nouvelles amplitudes du signal.
   update() {
     const vertices = this.mesh.geometry.getAttribute('position').array;
     var magnitude;
@@ -130,8 +134,13 @@ export default class App {
   }
 
   render() {
+    // Mise à jour des amplitudes du signal
     this.soundApi.update();
+
+    // Mise à jour des vertices
     this.update();
+
+    // Mouvement bruité de la caméra
     const timeFactor = this.uniforms.time.value/900;
 
     this.camera.position.set(
@@ -140,6 +149,7 @@ export default class App {
       this.simplex.noise2D(2, timeFactor)*this.radiusCameraFactor
     );
 
+    // On insiste sur la rotation de l'axe z car c'est psyché.
     const z = this.camera.rotation.z;
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
     this.camera.rotation.z = z + 0.005;

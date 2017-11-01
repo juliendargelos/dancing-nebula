@@ -1,8 +1,11 @@
+// Gestion basique des nodes et évènements
+// "humanize" des nom de fichiers audio
 export default class UI {
   constructor(app) {
     this.app = app;
     this.input = document.querySelector('.input');
     this.default = document.querySelector('.default');
+    this.spinner = document.querySelector('.spinner');
 
     this.app.soundApi.on('play', event => {
       this.input.textContent = this.fileName(event.file)
@@ -29,5 +32,17 @@ export default class UI {
 
   fileName(file) {
     return file.name.replace(/^\d+\s/, '').replace(/\.[^\.]+$/, '');
+  }
+
+  get loading() {
+    return this.spinner.className.match(/\bspinner--loading\b/) !== null;
+  }
+
+  set loading(v) {
+    v = !!v;
+    if(v !== this.loading) {
+      if(v) this.spinner.className += ' spinner--loading';
+      else this.spinner.className = this.spinner.className.replace(/\bspinner--loading\b/, '');
+    }
   }
 }

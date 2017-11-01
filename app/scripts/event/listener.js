@@ -1,3 +1,5 @@
+// Mixin permettant à un objet d'émettre des évènements.
+
 import Event from '../event'
 
 export default class Listener {
@@ -6,15 +8,18 @@ export default class Listener {
     this.dispatchedEvents = {};
   }
 
+  // Indique si l'évènement possède déjà une pile de listeners.
   available(event) {
     return Array.isArray(this.handlers[event]);
   }
 
+  // Retourne les listeners correspondant à l'évènement indiqué
   get(event) {
     if(!this.available(event)) this.handlers[event] = [];
     return this.handlers[event];
   }
 
+  // Itérer sur les listeners corresondants au évènements indiquéss
   each(events, callback) {
     events = (events+'').split(' ');
     var event;
@@ -25,12 +30,14 @@ export default class Listener {
     }
   }
 
+  // Ajouter un listener
   on(events, callback) {
     this.each(events, function(event) {
       this.get(event).push(callback);
     });
   }
 
+  // Supprimer un listener
   off(events, callback) {
     var handlers, index;
     this.each(events, function(event) {
@@ -42,6 +49,7 @@ export default class Listener {
     });
   }
 
+  // Exécute un callback lors la propagation d'un des évènements indiqués, seulement count fois.
   count(amount, events, callback) {
     if(typeof amount !== 'number') amount = 1;
     if(amount === 0) callback.call(this);
@@ -61,16 +69,20 @@ export default class Listener {
     }
   }
 
+  // Associe deux évènements, quand l'un se propage l'autre aussi (autant de fois qu'indiqué dans amount)
   associate(origin, destination, amount) {
     this.count(amount, origin, function(event) {
       this.dispatch(destination, event);
     });
   }
 
+  // Exécute un callback un seule fois lors la propagation d'un des évènements indiqués.
   once(events, callback) {
     this.count(1, events, callback);
   }
 
+  // Le callback s'éxécute directement si un des évènements indiqués
+  // à déjà eu lieu, sinon il s'executera dès que l'un d'entre eux se propagera, mais une seule fois.
   require(events, callback) {
     var dispatched = this.dispatched(events);
 
@@ -78,6 +90,7 @@ export default class Listener {
     else this.once(events, callback);
   }
 
+  // Emettre des évènements
   dispatch(events, data) {
     var handlers, type;
 
@@ -121,6 +134,9 @@ export default class Listener {
     return this;
   }
 
+  // La méthode assign transfert une méthode du mixin à l'objet cible.
+  // Elle fait en sorte que le contexte reste cohérent lors de l'appel de la méthode
+  // depuis l'objet cible.
   assign(method, object, selfReturn) {
     var self = this;
     if(selfReturn === undefined) selfReturn = true;
@@ -139,6 +155,7 @@ export default class Listener {
     };
   }
 
+  // Transfert des méthodes du mixin vers un objet cible.
   static defer(object) {
     return new Listener().defer(object);
   }
