@@ -6,6 +6,7 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = function(env) {
   let plugins = [
@@ -23,7 +24,7 @@ module.exports = function(env) {
     new HtmlWebpackPlugin({
       template: 'index.html',
       chunksSortMode: 'dependency'
-    }),
+    })
   ];
 
   if (env == 'dev') {
@@ -33,6 +34,10 @@ module.exports = function(env) {
 
     // uglify
     plugins.push(new UglifyJSPlugin());
+    plugins.push(new CopyWebpackPlugin([{
+      from: path.resolve(__dirname, 'sounds'),
+      to: path.resolve(__dirname, 'docs/sounds')
+    }]))
   }
 
   return {
