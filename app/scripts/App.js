@@ -39,7 +39,7 @@ export default class App {
     this.container.appendChild(this.renderer.domElement);
 
     this.uniforms = {
-      amount:      {type: 'f', value: 50},
+      amount:      {type: 'f', value: 100},
       resolution:  {type: 'f', value: 500},
       radius:      {type: 'f', value: 1},
       average:     {type: 'f', value: 0},
@@ -47,7 +47,7 @@ export default class App {
       thetaFactor: {type: 'f', value: 0}
     };
 
-    this.mesh = new THREE.Line(
+    this.mesh = new THREE.Mesh(
       new THREE.BufferGeometry(),
       new THREE.ShaderMaterial({
         uniforms: this.uniforms,
@@ -57,7 +57,7 @@ export default class App {
       })
     );
 
-    // Cette mèche ne sert qu'à mimer un effet de flou cinétique, voir la shader correspondant
+    // Cette mèche ne sert qu'à mimer un effet de flou cinétique, voir le shader correspondant
     // dans le markup.
     this.clearer = new THREE.Mesh(
       new THREE.BufferGeometry(),
@@ -92,7 +92,7 @@ export default class App {
     this.scene.add(this.mesh);
   }
 
-  // Aplitude du signal correspondant à l'index indiqué (calculé selon le nombre de point par courbe, avec un passe-bas à 900 échantillons seulement
+  // Amplitude du signal correspondant à l'index indiqué (calculé selon le nombre de point par courbe, avec un passe-bas à 900 échantillons seulement
   // car ceux qui suivent ont quasiment toujours une amplitude nulle).
   // On pondère cette amplitude avec un facteur arbitraire.
   magnitude(offset) {

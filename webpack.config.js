@@ -2,8 +2,8 @@
 
 const path = require('path');
 const webpack = require('webpack');
-const CleanWebpackPlugin = require('clean-webpack-plugin');
-const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
 
@@ -13,22 +13,12 @@ module.exports = function(env) {
       THREE: 'three',
     }),
     // clean export folder
-    new CleanWebpackPlugin('dist', {
-      root: __dirname
-    }),
+    new CleanWebpackPlugin(),
     // create styles css
-    new ExtractTextPlugin(env == 'prod' ? '[name].[contenthash].css' : '[name].css'),
+    new MiniCssExtractPlugin({
+      filename: env == 'prod' ? '[name].[contenthash].css' : '[name].css'
+    }),
     // create vendor bundle with all imported node_modules
-    new webpack.optimize.CommonsChunkPlugin({
-      name: 'vendor',
-      minChunks: function (module) {
-        return module.context && module.context.indexOf('node_modules') !== -1;
-      }
-    }),
-    // create webpack manifest separately
-    new webpack.optimize.CommonsChunkPlugin({
-      name: 'manifest'
-    }),
     // create html
     new HtmlWebpackPlugin({
       template: 'index.html',
@@ -42,12 +32,7 @@ module.exports = function(env) {
   else {
 
     // uglify
-    plugins.push(new UglifyJSPlugin({
-      sourceMap: false,
-      compress: {
-        warnings: false,
-      },
-    }));
+    plugins.push(new UglifyJSPlugin());
   }
 
   return {
@@ -60,7 +45,7 @@ module.exports = function(env) {
       main: './index.js'
     },
     output: {
-      path: path.resolve(__dirname, 'dist'),
+      path: path.resolve(__dirname, 'docs'),
       filename: env == 'prod' ? '[name].[chunkhash].js' : '[name].js',
     },
     module: {
@@ -70,14 +55,18 @@ module.exports = function(env) {
         use: {
            loader: 'babel-loader',
            options: {
-             presets: ['env']
+             presets: ['@babel/preset-env']
           }
         }
       },{
         test: /\.css$/,
-        use: ExtractTextPlugin.extract({
-          use: 'css-loader'
-        })
+        use: [
+          {
+            loader: MiniCssExtractPlugin.loader,
+            options: { hmr: env === 'dev' }
+          },
+          'css-loader',
+        ]
       },{
         test: [/\.mp3$/, /\.dae$/, /\.jpg$/, /\.obj$/, /\.fbx$/],
         use: ['file-loader?name=[path][name].[hash].[ext]']
